@@ -56,7 +56,8 @@ fn main() {
     //let children = find_ppid_node(&pspools,1);
     gentree(&pspools,&mut root);
     println!("==========================");
-    dump(&root,"|".to_string());
+    let root_prefixs = Vec::<String>::new();
+    dump(&root,false,&root_prefixs,0,"");
 }
 
 fn find_pid_node(pool:&Vec<MetaData>,pid: u32) -> Option<MetaData> {
@@ -98,16 +99,46 @@ fn gentree(pool:&Vec<MetaData>,root :&mut Node<MetaData>){
     }
 }
 
-fn dump(root :&Node<MetaData>,prefix: String){
-    println!("{}--↳{}",prefix,root.value.raw_info);
+//"├"、"└"、"│"、"─"
+fn dump(root :&Node<MetaData>,lastitem: bool,prefixs:&Vec<String>,deepin:u32,tag: &str){
+    let mut full_str = String::new();
+    //for _ in 0..deepin {
+    //    //format!("{}{}",tmpstr[0..tmpstr.len()-5].to_string())
+    //    full_str.push_str("  ");
+    //}
+    for prefix in prefixs{
+        full_str.push_str(&prefix);
+    }
+    full_str.push_str(tag);
+    //println!("=={}",full_str);
+    println!("{}{}",full_str,root.value.raw_info);
     let len = root.children.len();
-    let index = 0;
-    for child in &root.children{
-        if index < len -1{
-            dump(&child,String::from(prefix.clone()+"  |"))
-        } else {
-            let tmpstr = prefix.clone();
-            dump(&child,String::from(tmpstr[0..tmpstr.len()-2].to_string()+"   |"));
+    let mut index = 0;
+
+    let new_prefixs = if !lastitem {
+        let mut new_prefixs = prefixs.clone();
+        //println!("prefix:{:#?}",new_prefixs);
+        new_prefixs.push("│".to_string());
+        new_prefixs.push("  ".to_string());
+        new_prefixs
+    } else {
+        let mut new_prefixs = prefixs.clone();
+        new_prefixs.push("│".to_string());
+        if !new_prefixs.is_empty(){
+            new_prefixs.pop().expect("is end.");
+            new_prefixs.push("  ".to_string());
         }
+        new_prefixs.push("  ".to_string());
+        new_prefixs
+    };
+
+    for child in &root.children{
+        //println!("{} {}",index,len);
+        if index < len -1{
+            dump(&child,false,&new_prefixs,deepin+1,"├─");
+        } else {
+            dump(&child,true,&new_prefixs,deepin+1,"└─");
+        }
+        index+=1;
     }
 }
