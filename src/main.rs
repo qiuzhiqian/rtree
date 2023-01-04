@@ -1,6 +1,7 @@
 use rtree::link::Node;
+use std::io::{BufRead, BufReader};
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 struct MetaData{
     pid :u32,
     ppid :u32,
@@ -9,9 +10,10 @@ struct MetaData{
 
 fn main() {
     //println!("Hello, world!");
+    let pid_index = 1;
+    let ppid_index = 2;
 
-    let mut pspools = Vec::new();
-    let psinfo = vec![
+    /*let psinfo = vec![
         "root             1     0 0 19:10 ?        00:00:24 init second_stage",
         "root             2     0 0 19:10 ?        00:00:00 [kthreadd]",
         "root             4     2 0 19:10 ?        00:00:00 [kworker/0:0H]",
@@ -22,42 +24,77 @@ fn main() {
         "system        4906  3895 1 20:08 ?        00:00:59 system_server",
         "radio         6939  3895 0 21:40 ?        00:00:02 com.android.phone",
         "system        4068  3878 0 19:24 ?        00:00:07 sh /system/bin/ylogdebug.sh",
-    ];
+    ];*/
+    let psinfo = read_file_lines("/home/xml/work/code/rust/rtree/ps-ef-1.log");
 
+    let ps_pools = gen_ps_pools(psinfo,pid_index,ppid_index);
+
+    let mt = find_pid_node(&ps_pools,1).expect("not find");
+    let mut root = Node::new(mt);
+    gentree(&ps_pools,&mut root);
+    println!("===================================================");
+    let root_prefixs = Vec::<String>::new();
+    dump(&root,false,&root_prefixs,0,"");
+}
+
+fn read_file_lines(filepath:&str) -> Vec<String> {
+    let file = std::fs::File::open(filepath).expect("file is not exist!!!");
+    let mut lines = Vec::<String>::new();
+    let file_lines = BufReader::new(file).lines();
+    for line in file_lines {
+        if let Ok(data) = line {
+            //println!("{}", data);
+            lines.push(data);
+        }
+        //lines.push(line);
+    }
+    return lines;
+}
+
+fn gen_ps_pools(psinfo:Vec<String>,pid_index:u32,ppid_index:u32) -> Vec<MetaData> {
+    let mut pspools = Vec::new();
     for ps in psinfo{
         //println!("{}",ps);
         let items = ps.split_whitespace();
         //println!("{}",items[2]);
         let mut md = MetaData{
-            pid :1,
+            pid :0,
             ppid:0,
             raw_info:ps.to_string(),
         };
 
+        let items_len = items.clone().count() as u32;
+        if items_len < pid_index || items_len < ppid_index{
+            continue;
+        }
+
         let mut index = 0;
         for i in items {
             //println!("....{}",i);
-            if index == 1{
+            if index == pid_index{
                 //pid
-                md.pid = i.parse::<u32>().unwrap();
-            } else if index == 2{
+                if let Ok(x) = i.parse::<u32>() {
+                    md.pid = x;
+                } else {
+                    continue;
+                }
+            } else if index == ppid_index{
                 //ppid
-                md.ppid = i.parse::<u32>().unwrap();
+                if let Ok(x) = i.parse::<u32>() {
+                    md.ppid = x;
+                } else {
+                    continue;
+                }
             }
             
             index+=1;
         }
 
-        pspools.push(md);
+        if md.pid !=0 {
+            pspools.push(md);
+        }
     }
-
-    let mt = find_pid_node(&pspools,1).expect("not find");
-    let mut root = Node::new(mt);
-    //let children = find_ppid_node(&pspools,1);
-    gentree(&pspools,&mut root);
-    println!("==========================");
-    let root_prefixs = Vec::<String>::new();
-    dump(&root,false,&root_prefixs,0,"");
+    return pspools;
 }
 
 fn find_pid_node(pool:&Vec<MetaData>,pid: u32) -> Option<MetaData> {
@@ -102,10 +139,6 @@ fn gentree(pool:&Vec<MetaData>,root :&mut Node<MetaData>){
 //"├"、"└"、"│"、"─"
 fn dump(root :&Node<MetaData>,lastitem: bool,prefixs:&Vec<String>,deepin:u32,tag: &str){
     let mut full_str = String::new();
-    //for _ in 0..deepin {
-    //    //format!("{}{}",tmpstr[0..tmpstr.len()-5].to_string())
-    //    full_str.push_str("  ");
-    //}
     for prefix in prefixs{
         full_str.push_str(&prefix);
     }
@@ -117,17 +150,24 @@ fn dump(root :&Node<MetaData>,lastitem: bool,prefixs:&Vec<String>,deepin:u32,tag
 
     let new_prefixs = if !lastitem {
         let mut new_prefixs = prefixs.clone();
-        //println!("prefix:{:#?}",new_prefixs);
-        new_prefixs.push("│".to_string());
+        if deepin > 0{
+            new_prefixs.push("│".to_string());
+        } else {
+            new_prefixs.push(" ".to_string());
+        }
+        
         new_prefixs.push("  ".to_string());
         new_prefixs
     } else {
         let mut new_prefixs = prefixs.clone();
-        new_prefixs.push("│".to_string());
-        if !new_prefixs.is_empty(){
-            new_prefixs.pop().expect("is end.");
-            new_prefixs.push("  ".to_string());
+        if deepin > 0{
+            new_prefixs.push("│".to_string());
+        } else {
+            new_prefixs.push(" ".to_string());
         }
+
+        new_prefixs.pop().expect("is end.");
+        new_prefixs.push("  ".to_string());
         new_prefixs.push("  ".to_string());
         new_prefixs
     };
