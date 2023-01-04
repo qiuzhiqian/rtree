@@ -1,5 +1,6 @@
 use rtree::link::Node;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 
 #[derive(Clone,Debug)]
 struct MetaData{
@@ -9,23 +10,28 @@ struct MetaData{
 }
 
 fn main() {
-    //println!("Hello, world!");
+    let cmd = clap::Command::new("rtree")
+        .bin_name("rtree")
+        .author("xiamengliang@gmail.com")
+        .version("1.0.0")
+        .about("This is a tool for format ps to pstree!!!")
+        .args([
+            clap::Arg::new("file")
+                .long("file")
+                .short('f')
+                .action(clap::ArgAction::Append)
+                .value_parser(clap::value_parser!(PathBuf))
+                .required(true),
+                
+        ]);
+    let matches = cmd.get_matches();
+
+    let file_path = matches.get_one::<PathBuf>("file").expect("The path is not valid!!");
+
     let pid_index = 1;
     let ppid_index = 2;
 
-    /*let psinfo = vec![
-        "root             1     0 0 19:10 ?        00:00:24 init second_stage",
-        "root             2     0 0 19:10 ?        00:00:00 [kthreadd]",
-        "root             4     2 0 19:10 ?        00:00:00 [kworker/0:0H]",
-        "system        3878     1 1 19:23 ?        00:00:30 ylog",
-        "root             6     2 0 19:10 ?        00:00:00 [mm_percpu_wq]",
-        "system       14066  4068 4 42:57 ?        00:00:00 sleep 60s",
-        "root          3895     1 0 19:23 ?        00:00:02 zygote64",
-        "system        4906  3895 1 20:08 ?        00:00:59 system_server",
-        "radio         6939  3895 0 21:40 ?        00:00:02 com.android.phone",
-        "system        4068  3878 0 19:24 ?        00:00:07 sh /system/bin/ylogdebug.sh",
-    ];*/
-    let psinfo = read_file_lines("/home/xml/work/code/rust/rtree/ps-ef-1.log");
+    let psinfo = read_file_lines(file_path.to_str().expect("The path is not valid!!!"));
 
     let ps_pools = gen_ps_pools(psinfo,pid_index,ppid_index);
 
