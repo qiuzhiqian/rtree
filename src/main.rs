@@ -31,9 +31,7 @@ fn main() {
     } else {
         let mut psinfo = Vec::new();
         let lines = std::io::stdin().lines();
-        //stdin.read_line(&mut input_str).unwrap();//4
         for line in lines {
-            //println!("got a line: {}", line.unwrap());
             if let Ok(line_str) = line {
                 psinfo.push(line_str);
             }
@@ -43,10 +41,9 @@ fn main() {
 
     let pid_index = 1;
     let ppid_index = 2;
+    let cmd_index = 7;
 
-    //let psinfo = read_file_lines(file_path.to_str().expect("The path is not valid!!!"));
-
-    let ps_pools = gen_ps_pools(psinfo,pid_index,ppid_index);
+    let ps_pools = gen_ps_pools(psinfo,pid_index,ppid_index,cmd_index);
 
     let mt = find_pid_node(&ps_pools,1).expect("not find");
     let mut root = Node::new(mt);
@@ -62,34 +59,29 @@ fn read_file_lines(filepath:&str) -> Vec<String> {
     let file_lines = BufReader::new(file).lines();
     for line in file_lines {
         if let Ok(data) = line {
-            //println!("{}", data);
             lines.push(data);
         }
-        //lines.push(line);
     }
     return lines;
 }
 
-fn gen_ps_pools(psinfo:Vec<String>,pid_index:u32,ppid_index:u32) -> Vec<MetaData> {
+fn gen_ps_pools(psinfo:Vec<String>,pid_index:u32,ppid_index:u32,cmd_index:u32) -> Vec<MetaData> {
     let mut pspools = Vec::new();
     for ps in psinfo{
-        //println!("{}",ps);
         let items = ps.split_whitespace();
-        //println!("{}",items[2]);
         let mut md = MetaData{
             pid :0,
             ppid:0,
-            raw_info:ps.to_string(),
+            raw_info:String::new(),
         };
 
         let items_len = items.clone().count() as u32;
-        if items_len < pid_index || items_len < ppid_index{
+        if items_len < pid_index || items_len < ppid_index || items_len < cmd_index {
             continue;
         }
 
         let mut index = 0;
         for i in items {
-            //println!("....{}",i);
             if index == pid_index{
                 //pid
                 if let Ok(x) = i.parse::<u32>() {
@@ -103,6 +95,16 @@ fn gen_ps_pools(psinfo:Vec<String>,pid_index:u32,ppid_index:u32) -> Vec<MetaData
                     md.ppid = x;
                 } else {
                     continue;
+                }
+            } else if index >= cmd_index {
+                if index > cmd_index{
+                    md.raw_info.push_str(" ");
+                }
+                
+                md.raw_info.push_str(i);
+
+                if index == items_len -1 {
+                    md.raw_info.push_str(&format!(" [{}]",md.pid));
                 }
             }
             
