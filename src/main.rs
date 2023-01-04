@@ -20,18 +20,31 @@ fn main() {
                 .long("file")
                 .short('f')
                 .action(clap::ArgAction::Append)
-                .value_parser(clap::value_parser!(PathBuf))
-                .required(true),
+                .value_parser(clap::value_parser!(String)),
                 
         ]);
     let matches = cmd.get_matches();
 
-    let file_path = matches.get_one::<PathBuf>("file").expect("The path is not valid!!");
+    let psinfo = if let Some(file) = matches.get_one::<String>("file") {
+        let file_path = PathBuf::from(file);
+        read_file_lines(file_path.to_str().expect("The path is not valid!!!"))
+    } else {
+        let mut psinfo = Vec::new();
+        let lines = std::io::stdin().lines();
+        //stdin.read_line(&mut input_str).unwrap();//4
+        for line in lines {
+            //println!("got a line: {}", line.unwrap());
+            if let Ok(line_str) = line {
+                psinfo.push(line_str);
+            }
+        }
+        psinfo
+    };
 
     let pid_index = 1;
     let ppid_index = 2;
 
-    let psinfo = read_file_lines(file_path.to_str().expect("The path is not valid!!!"));
+    //let psinfo = read_file_lines(file_path.to_str().expect("The path is not valid!!!"));
 
     let ps_pools = gen_ps_pools(psinfo,pid_index,ppid_index);
 
