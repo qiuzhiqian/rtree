@@ -7,6 +7,12 @@ ps -ef
 ```
 本工具就是将```ps -ef```的输出转换成进程树信息。
 
+# build
+```
+$ cd rtree
+$ cargo build
+```
+
 # Usage
 1. 从文件中获取进程信息并进行格式化
 ```
