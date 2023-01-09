@@ -6,7 +6,7 @@ use std::path::PathBuf;
 struct MetaData{
     pid :u32,
     ppid :u32,
-    raw_info :String,
+    cmdline :String,
 }
 
 fn main() {
@@ -72,7 +72,7 @@ fn gen_ps_pools(psinfo:Vec<String>,pid_index:u32,ppid_index:u32,cmd_index:u32) -
         let mut md = MetaData{
             pid :0,
             ppid:0,
-            raw_info:String::new(),
+            cmdline:String::new(),
         };
 
         let items_len = items.clone().count() as u32;
@@ -98,13 +98,13 @@ fn gen_ps_pools(psinfo:Vec<String>,pid_index:u32,ppid_index:u32,cmd_index:u32) -
                 }
             } else if index >= cmd_index {
                 if index > cmd_index{
-                    md.raw_info.push_str(" ");
+                    md.cmdline.push_str(" ");
                 }
                 
-                md.raw_info.push_str(i);
+                md.cmdline.push_str(i);
 
                 if index == items_len -1 {
-                    md.raw_info.push_str(&format!(" [{}]",md.pid));
+                    md.cmdline.push_str(&format!(" [{}]",md.pid));
                 }
             }
             
@@ -124,7 +124,7 @@ fn find_pid_node(pool:&Vec<MetaData>,pid: u32) -> Option<MetaData> {
             let item = MetaData{
                 pid: i.pid,
                 ppid: i.ppid,
-                raw_info: i.raw_info.clone(),
+                cmdline: i.cmdline.clone(),
             };
             return Some(item);
         }
@@ -139,7 +139,7 @@ fn find_ppid_node(pool:&Vec<MetaData>,ppid: u32) -> Vec<MetaData> {
             let item = MetaData{
                 pid: i.pid,
                 ppid: i.ppid,
-                raw_info: i.raw_info.clone(),
+                cmdline: i.cmdline.clone(),
             };
             res.push(item);
         }
@@ -165,7 +165,7 @@ fn dump(root :&Node<MetaData>,lastitem: bool,prefixs:&Vec<String>,deepin:u32,tag
     }
     full_str.push_str(tag);
     //println!("=={}",full_str);
-    println!("{}{}",full_str,root.value.raw_info);
+    println!("{}{}",full_str,root.value.cmdline);
     let len = root.children.len();
     let mut index = 0;
 
